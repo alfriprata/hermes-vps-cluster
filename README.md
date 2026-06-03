@@ -152,12 +152,14 @@ In Telegram, chat with your Master bot:
 ## How It Works
 
 1. **Worker Setup** enables Hermes Agent's built-in API server on each worker VPS
-2. **Master Setup** configures the Master bot to connect to all workers via MCP
+2. **Master Setup** saves worker connection details (IP + API key)
 3. When you send a task to Master:
-   - Master checks available storage on each worker
+   - Master checks available storage on each worker via API (`/v1/models`)
    - Master selects the worker with the most free space
-   - Master sends the task via the worker's API
+   - Master sends the task via worker's API (`/v1/chat/completions`)
    - Master returns the result to you
+
+**Note:** This uses Hermes Agent's built-in API server (OpenAI-compatible), NOT MCP. No MCP configuration needed.
 
 ---
 

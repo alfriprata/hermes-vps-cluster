@@ -1,8 +1,8 @@
 #!/bin/bash
 # ============================================
-# Send Task to Specific Worker
+# Send Task to Specific Worker (API Mode)
 # Part of: Hermes VPS Cluster
-# Usage: send_to_worker.sh <worker_name> "task description"
+# Uses API server directly (no MCP needed)
 # ============================================
 
 CONFIG_FILE="$HOME/.hermes/workers.json"
@@ -64,13 +64,13 @@ echo "Target: $ip:$port"
 echo "Task: $TASK"
 echo ""
 
-# Send task
+# Send task via API server
 RESULT=$(curl -s -m 120 -H "Authorization: Bearer $api_key" \
     "http://$ip:$port/v1/chat/completions" \
     -H "Content-Type: application/json" \
     -d "{
         \"model\": \"hermes-agent\",
-        \"messages\": [{\"role\": \"user\", \"content\": \"$TASK\"}],
+        \"messages\": [{\"role\": \"user\", \"content\": $(echo "$TASK" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))')}],
         \"stream\": false
     }" 2>/dev/null)
 

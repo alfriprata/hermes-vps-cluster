@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-06-03
+
+### Fixed
+
+- **BREAKING:** Changed from MCP to API server mode
+  - Workers now use API server (`/v1/chat/completions`) instead of MCP (`/mcp`)
+  - No MCP configuration needed in `config.yaml`
+  - Simpler setup, fewer moving parts
+
+### Changed
+
+- Skills (`check_workers.sh`, `route_task.sh`, `send_to_worker.sh`) now use API server directly
+- Master setup no longer adds MCP config to `config.yaml`
+- Worker connection test uses `/v1/models` endpoint instead of `/mcp`
+
+### Why
+
+The MCP endpoint requires separate configuration and setup. Using the API server directly is simpler and works out of the box with the standard Hermes Agent installation.
+
+---
+
+## [2.1.0] - 2026-06-03
+
+### Added
+
+- **Safe Mode** for setup scripts
+  - Auto-backup before config changes
+  - YAML validation before restart
+  - Auto-rollback if gateway fails to start
+
+---
+
 ## [2.0.0] - 2026-06-03
 
 ### Added

@@ -1,8 +1,8 @@
 #!/bin/bash
 # ============================================
-# Route Task to Best Available Worker
+# Route Task to Best Available Worker (API Mode)
 # Part of: Hermes VPS Cluster
-# Usage: route_task.sh "task description"
+# Uses API server directly (no MCP needed)
 # ============================================
 
 CONFIG_FILE="$HOME/.hermes/workers.json"
@@ -38,12 +38,12 @@ for w in data['workers']:
         print(f\"{w['name']}|{w['ip']}|{w['port']}|{w['api_key']}\")
 " 2>/dev/null | while IFS='|' read -r name ip port api_key; do
     # Get available storage
-    AVAIL=$(curl -s -m 10 -H "Authorization: Bearer $api_key" \
+    AVAIL=$(curl -s -m 15 -H "Authorization: Bearer $api_key" \
         "http://$ip:$port/v1/chat/completions" \
         -H "Content-Type: application/json" \
         -d '{
             "model": "hermes-agent",
-            "messages": [{"role": "user", "content": "Run: df -BG / | tail -1 | awk \"{print \\$4}\". Return ONLY the number."}],
+            "messages": [{"role": "user", "content": "Run: df -BG / | tail -1 | awk \"{print \\$4}\". Return ONLY the number, no text."}],
             "stream": false
         }' 2>/dev/null | python3 -c "
 import json, sys, re
@@ -73,6 +73,7 @@ done
 
 # Send task to best worker
 if [ -z "$BEST_WORKER" ]; then
+    echo ""
     echo "ERROR: No workers available"
     exit 1
 fi
@@ -81,13 +82,13 @@ echo ""
 echo "=== Selected: $BEST_WORKER (${BEST_AVAIL}GB free) ==="
 echo ""
 
-# Execute task
+# Execute task via API server
 RESULT=$(curl -s -m 120 -H "Authorization: Bearer $BEST_KEY" \
     "http://$BEST_IP:$BEST_PORT/v1/chat/completions" \
     -H "Content-Type: application/json" \
     -d "{
         \"model\": \"hermes-agent\",
-        \"messages\": [{\"role\": \"user\", \"content\": \"$TASK\"}],
+        \"messages\": [{\"role\": \"user\", \"content\": $(echo "$TASK" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))')}],
         \"stream\": false
     }" 2>/dev/null)
 

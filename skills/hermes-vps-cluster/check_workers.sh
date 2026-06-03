@@ -1,7 +1,8 @@
 #!/bin/bash
 # ============================================
-# Check Workers Status
+# Check Workers Status (API Mode)
 # Part of: Hermes VPS Cluster
+# Uses API server directly (no MCP needed)
 # ============================================
 
 CONFIG_FILE="$HOME/.hermes/workers.json"
@@ -28,14 +29,15 @@ for w in data['workers']:
 " 2>/dev/null | while IFS='|' read -r name ip port api_key; do
     TOTAL=$((TOTAL + 1))
     
-    # Health check
-    HEALTH=$(curl -s -m 5 "http://$ip:$port/health" 2>/dev/null)
+    # Health check via API server
+    HEALTH=$(curl -s -m 5 -H "Authorization: Bearer $api_key" \
+        "http://$ip:$port/v1/models" 2>/dev/null)
     
-    if echo "$HEALTH" | grep -q '"ok"'; then
+    if echo "$HEALTH" | grep -q '"data"'; then
         ONLINE=$((ONLINE + 1))
         
-        # Get storage info
-        STORAGE=$(curl -s -m 10 -H "Authorization: Bearer $api_key" \
+        # Get storage info via API
+        STORAGE=$(curl -s -m 15 -H "Authorization: Bearer $api_key" \
             "http://$ip:$port/v1/chat/completions" \
             -H "Content-Type: application/json" \
             -d '{
@@ -47,14 +49,9 @@ import json, sys
 try:
     data = json.load(sys.stdin)
     content = data['choices'][0]['message']['content']
-    # Parse df output
     parts = content.split()
     if len(parts) >= 5:
-        total = parts[1]
-        used = parts[2]
-        avail = parts[3]
-        pct = parts[4]
-        print(f'Total: {total}, Used: {used}, Free: {avail} ({pct} used)')
+        print(f'Total: {parts[1]}, Used: {parts[2]}, Free: {parts[3]} ({parts[4]} used)')
     else:
         print('N/A')
 except:
@@ -70,6 +67,3 @@ except:
     fi
     echo ""
 done
-
-echo "=== Summary ==="
-echo "Run /check_workers in Telegram for real-time status"
