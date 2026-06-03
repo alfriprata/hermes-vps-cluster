@@ -5,40 +5,62 @@
 [![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04+-orange.svg)](https://ubuntu.com/)
 [![Shell Script](https://img.shields.io/badge/Shell-Bash-green.svg)](https://www.gnu.org/software/bash/)
 
-**Distribute your Hermes Agent bots across multiple VPS with automatic load balancing based on storage availability.**
+**Centralize control of your Hermes Agent bots across multiple VPS with automatic storage-based routing.**
 
-> Problem: You have multiple Hermes Agent bots on separate VPS, but storage fills up on individual servers.  
-> Solution: This toolkit connects them into a cluster with a Master bot that routes tasks to the worker with the most available storage.
+> Problem: You have multiple Hermes Agent bots on separate VPS. You have to chat to each one manually, and storage fills up on individual servers.  
+> Solution: This toolkit adds a **Master Bot** that routes your tasks to the worker with the most available storage — you chat to one bot, it picks the best worker.
+
+---
+
+## What This Does
+
+**Before:**
+```
+You → Chat VPS 1 (busy, storage full)
+You → Chat VPS 2 (ok, but you don't know)
+You → Chat VPS 3 (ok, but you don't know)
+You → Chat VPS 4 (busy)
+You → Chat VPS 5 (ok)
+```
+
+**After:**
+```
+You → Chat Master Bot
+Master → Checks all workers
+Master → Picks worker with most free storage
+Master → Routes task to that worker
+Master → Returns result to you
+```
 
 ---
 
 ## Architecture
 
 ```
-                         User (Telegram)
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │     Master Bot      │
-                    │   (VPS 1 - Bot 1)   │
-                    │                     │
-                    │  • Routes tasks     │
-                    │  • Monitors health  │
-                    │  • Load balancing   │
-                    └──────────┬──────────┘
-                               │
-           ┌───────────────────┼───────────────────┐
-           │                   │                   │
-           ▼                   ▼                   ▼
-    ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-    │  Worker 1   │     │  Worker 2   │     │  Worker N   │
-    │  (VPS 2)    │     │  (VPS 3)    │     │  (VPS N)    │
-    │             │     │             │     │             │
-    │  Storage:   │     │  Storage:   │     │  Storage:   │
-    │  ████░░ 60% │     │  ██░░░░ 30% │     │  █████░ 80% │
-    └─────────────┘     └─────────────┘     └─────────────┘
-    
-    Task → Routes to Worker 2 (lowest storage usage)
+                    You (Telegram)
+                         │
+                         ▼
+              ┌─────────────────────┐
+              │     Master Bot      │
+              │   (VPS 1 - Bot 1)   │
+              │                     │
+              │  • Routes tasks     │  ← You only chat here
+              │  • Monitors health  │
+              │  • Auto-failover    │
+              └──────────┬──────────┘
+                         │
+         ┌───────────────┼───────────────┐
+         │               │               │
+         ▼               ▼               ▼
+  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+  │  Worker 1   │ │  Worker 2   │ │  Worker N   │
+  │  (VPS 2)    │ │  (VPS 3)    │ │  (VPS N)    │
+  │             │ │             │ │             │
+  │  Storage:   │ │  Storage:   │ │  Storage:   │
+  │  ████░░ 60% │ │  ██░░░░ 30% │ │  █████░ 80% │
+  └─────────────┘ └─────────────┘ └─────────────┘
+  
+  Task → Routes to Worker 2 (most free storage)
 ```
 
 ---
@@ -46,18 +68,27 @@
 ## Features
 
 ### Core Features
-- **Automatic Storage-Based Routing** — Tasks are sent to the worker with the most available storage
-- **Health Monitoring** — Check status of all workers with a single command
-- **Simple Setup** — One script install, works with existing Hermes Agent installations
-- **Scalable** — Add new workers anytime by running the setup script on a new VPS
-- **Telegram Integration** — Manage everything from your Telegram bot
-- **No External Dependencies** — Uses Hermes Agent's built-in API server
 
-### Advanced Features (v2.0)
-- **Auto-Failover** — If a worker is down, tasks automatically route to the next available worker
-- **Health Monitor (Cron)** — Periodic health checks with Telegram notifications when issues occur
-- **Task Queue** — When all workers are busy, tasks are queued and processed when workers become available
-- **Worker Specialization** — Assign roles to workers (research, code, data, creative, support) for intelligent routing
+| Feature | Description |
+|---------|-------------|
+| **Storage-Based Routing** | Tasks sent to worker with most free storage |
+| **Auto-Failover** | If worker is down, task goes to next available worker |
+| **Health Monitoring** | Check all workers with one command |
+| **Task Queue** | If all workers busy, task waits in queue |
+| **Worker Specialization** | Assign roles: research, code, data, etc. |
+| **Telegram Integration** | Manage everything from Telegram |
+| **Safe Setup** | Auto-backup, validation, rollback on failure |
+
+### Telegram Commands
+
+| Command | Description |
+|---------|-------------|
+| `/check_workers` | Show status and storage of all workers |
+| `/route_task <task>` | Send task to worker with most free storage |
+| `/send_to_worker <name> <task>` | Send task to a specific worker |
+| `/failover run <task>` | Execute with auto-failover |
+| `/health_monitor run` | Run health check now |
+| `/task_queue add <task>` | Add task to queue |
 
 ---
 
@@ -69,147 +100,79 @@
 - Ubuntu 22.04+ on all servers
 - Telegram bots already configured on each VPS
 
-### One-Command Setup (Recommended)
-
-**On Worker VPS (Bot 2, 3, 4, 5, ...):**
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/alfriprata/hermes-vps-cluster/main/quickstart.sh | bash -s -- --worker
-```
-
-**On Master VPS (Bot 1):**
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/alfriprata/hermes-vps-cluster/main/quickstart.sh | bash -s -- --master
-```
-
-Or download and run interactively:
-
-```bash
-git clone https://github.com/alfriprata/hermes-vps-cluster.git
-cd hermes-vps-cluster
-chmod +x quickstart.sh
-./quickstart.sh
-```
-
-### Manual Setup (Alternative)
-
-<details>
-<summary>Click to expand manual setup steps</summary>
-
-#### Step 1: Clone this repository
-
-```bash
-git clone https://github.com/alfriprata/hermes-vps-cluster.git
-cd hermes-vps-cluster
-```
-
-#### Step 2: Setup Worker Bots (VPS 2, 3, 4, 5, ...)
+### Step 1: Setup Worker Bots (VPS 2, 3, 4, 5, ...)
 
 Run on **each** worker VPS:
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/alfriprata/hermes-vps-cluster/main/scripts/setup-worker.sh | bash
+```
+
+Or clone and run:
+
+```bash
+git clone https://github.com/alfriprata/hermes-vps-cluster.git
+cd hermes-vps-cluster
 chmod +x scripts/setup-worker.sh
 ./scripts/setup-worker.sh
 ```
 
-The script will:
-1. Generate an API key
-2. Enable the Hermes API server
-3. Configure firewall rules
-4. Display connection information
-
 **Save the output** — you'll need the IP and API key for the Master setup.
 
-#### Step 3: Setup Master Bot (VPS 1)
+### Step 2: Setup Master Bot (VPS 1)
 
 Run on the Master VPS:
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/alfriprata/hermes-vps-cluster/main/scripts/setup-master.sh | bash
+```
+
+Or clone and run:
+
+```bash
+git clone https://github.com/alfriprata/hermes-vps-cluster.git
+cd hermes-vps-cluster
 chmod +x scripts/setup-master.sh
 ./scripts/setup-master.sh
 ```
 
 When prompted, enter the IP and API key for each worker.
 
-#### Step 4: Verify Setup
+### Step 3: Verify
 
-```bash
-chmod +x scripts/test-cluster.sh
-./scripts/test-cluster.sh
-```
-
-Or test from Telegram:
+In Telegram, chat with your Master bot:
 
 ```
+/reload-mcp
 /check_workers
 ```
-
-</details>
-
----
-
-## Usage
-
-### Telegram Commands
-
-| Command | Description |
-|---------|-------------|
-| `/check_workers` | Show status and storage of all workers |
-| `/route_task <task>` | Send task to worker with most available storage |
-| `/send_to_worker <name> <task>` | Send task to a specific worker |
-
-### Natural Language
-
-You can also chat naturally with the Master bot:
-
-```
-You: "Check storage on all servers"
-Master: [Runs /check_workers and returns results]
-
-You: "Run a backup on bot3"
-Master: [Sends backup task to bot3]
-
-You: "Which server has the most space?"
-Master: [Checks all workers and recommends one]
-```
-
-### Advanced Commands (v2.0)
-
-| Command | Description |
-|---------|-------------|
-| `/failover run <task>` | Execute with auto-failover if worker is down |
-| `/health_monitor run` | Run health check now |
-| `/health_monitor install 30` | Install health check every 30 minutes |
-| `/task_queue add <task> [priority]` | Add task to queue (low/normal/high) |
-| `/task_queue process` | Process next task in queue |
-| `/task_queue status` | Show queue status |
-| `/worker_spec show` | Show worker specializations |
-| `/worker_spec set <worker> <spec>` | Set worker specialization |
-| `/worker_spec route <task> <spec>` | Route to specialized worker |
-
-### Worker Specializations
-
-| Specialization | Use Case |
-|---------------|----------|
-| `general` | Can handle any task (default) |
-| `research` | Web research, data gathering |
-| `code` | Code generation, debugging |
-| `data` | Data processing, analysis |
-| `creative` | Writing, content creation |
-| `support` | Customer support, FAQ |
 
 ---
 
 ## How It Works
 
 1. **Worker Setup** enables Hermes Agent's built-in API server on each worker VPS
-2. **Master Setup** configures the Master bot to connect to all workers via MCP (Model Context Protocol)
-3. When a task arrives, the Master:
-   - Checks available storage on each worker
-   - Selects the worker with the most free space
-   - Sends the task via the worker's API
-   - Returns the result to the user
+2. **Master Setup** configures the Master bot to connect to all workers via MCP
+3. When you send a task to Master:
+   - Master checks available storage on each worker
+   - Master selects the worker with the most free space
+   - Master sends the task via the worker's API
+   - Master returns the result to you
+
+---
+
+## Use Cases
+
+This is designed for scenarios where:
+- You have **multiple identical Hermes Agent bots** on separate VPS
+- Each VPS has **limited storage** that fills up over time
+- You want to **chat to one bot** instead of managing multiple bots
+- You want **automatic failover** if a worker goes down
+
+**Examples:**
+- Crypto agents monitoring different exchanges
+- Bots running tasks that accumulate logs/data
+- Any setup where you need distributed storage
 
 ---
 
@@ -221,11 +184,10 @@ hermes-vps-cluster/
 ├── LICENSE                      # MIT License
 ├── CHANGELOG.md                 # Version history
 ├── .gitignore                   # Git ignore rules
-├── quickstart.sh                # One-command setup
 ├── scripts/
-│   ├── setup-worker.sh          # Worker VPS setup script
-│   ├── setup-master.sh          # Master VPS setup script
-│   └── test-cluster.sh          # Cluster verification script
+│   ├── setup-worker.sh          # Worker VPS setup (safe mode)
+│   ├── setup-master.sh          # Master VPS setup (safe mode)
+│   └── test-cluster.sh          # Cluster verification
 ├── config-templates/
 │   ├── worker.env.example       # Worker environment template
 │   └── master.config.yaml       # Master config template
@@ -233,7 +195,7 @@ hermes-vps-cluster/
 │   └── hermes-vps-cluster/
 │       ├── skill.yaml           # Skill definition
 │       ├── check_workers.sh     # Health check command
-│       ├── route_task.sh        # Auto-routing command
+│       ├── route_task.sh        # Storage-based routing
 │       ├── send_to_worker.sh    # Direct worker command
 │       ├── failover.sh          # Auto-failover logic
 │       ├── health-monitor.sh    # Health monitoring (cron)
@@ -264,7 +226,7 @@ The Master's `~/.hermes/config.yaml` will be updated with MCP server entries for
 
 ```yaml
 mcp_servers:
-  worker1:
+  bot2:
     url: "http://WORKER_IP:8642/mcp"
     headers:
       Authorization: "Bearer WORKER_API_KEY"
@@ -274,15 +236,22 @@ mcp_servers:
 
 ---
 
-## Adding a New Worker
+## Safety Features
 
-To add a new VPS to the cluster:
+### Auto-Backup
+Before making any changes, the script creates backups:
+```
+~/.hermes/backups/20260603_123456/
+├── .env.backup
+├── config.yaml.backup
+└── workers.json.backup
+```
 
-1. Install Hermes Agent on the new VPS
-2. Run `./scripts/setup-worker.sh`
-3. On the Master, add the new worker to `~/.hermes/workers.json`
-4. Add the MCP config to `~/.hermes/config.yaml`
-5. Run `/reload-mcp` in Telegram
+### Config Validation
+The script validates YAML syntax before restarting the gateway.
+
+### Auto-Rollback
+If the gateway fails to start after changes, the script automatically restores the backup.
 
 ---
 
@@ -296,14 +265,16 @@ Quick checks:
 # Test worker connectivity
 curl -s http://WORKER_IP:8642/health
 
-# Test authentication
-curl -s -H "Authorization: Bearer API_KEY" http://WORKER_IP:8642/v1/models
-
-# Check firewall
-sudo ufw status
+# Check gateway status
+hermes gateway status
 
 # View logs
 tail -f ~/.hermes/logs/gateway.log
+
+# Restore backup
+cp ~/.hermes/backups/YYYYMMDD_HHMMSS/.env.backup ~/.hermes/.env
+cp ~/.hermes/backups/YYYYMMDD_HHMMSS/config.yaml.backup ~/.hermes/config.yaml
+hermes gateway stop && hermes gateway start
 ```
 
 ---
@@ -316,7 +287,6 @@ Key points:
 - API keys are stored with `600` permissions
 - Use unique API keys per worker
 - Restrict firewall to Master IP only (optional)
-- Consider HTTPS via reverse proxy for production
 
 ---
 
@@ -342,13 +312,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [Hermes Agent](https://github.com/NousResearch/hermes-agent) by Nous Research
 - [MCP (Model Context Protocol)](https://modelcontextprotocol.io/)
-
----
-
-## Support
-
-- Open an [issue](https://github.com/alfriprata/hermes-vps-cluster/issues) for bugs
-- Start a [discussion](https://github.com/alfriprata/hermes-vps-cluster/discussions) for questions
 
 ---
 
