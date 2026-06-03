@@ -67,19 +67,19 @@
 **On Worker VPS (Bot 2, 3, 4, 5, ...):**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/hermes-vps-cluster/main/quickstart.sh | bash -s -- --worker
+curl -fsSL https://raw.githubusercontent.com/alfriprata/hermes-vps-cluster/main/quickstart.sh | bash -s -- --worker
 ```
 
 **On Master VPS (Bot 1):**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/hermes-vps-cluster/main/quickstart.sh | bash -s -- --master
+curl -fsSL https://raw.githubusercontent.com/alfriprata/hermes-vps-cluster/main/quickstart.sh | bash -s -- --master
 ```
 
 Or download and run interactively:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/hermes-vps-cluster.git
+git clone https://github.com/alfriprata/hermes-vps-cluster.git
 cd hermes-vps-cluster
 chmod +x quickstart.sh
 ./quickstart.sh
@@ -93,7 +93,7 @@ chmod +x quickstart.sh
 #### Step 1: Clone this repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/hermes-vps-cluster.git
+git clone https://github.com/alfriprata/hermes-vps-cluster.git
 cd hermes-vps-cluster
 ```
 
@@ -309,8 +309,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-- Open an [issue](https://github.com/YOUR_USERNAME/hermes-vps-cluster/issues) for bugs
-- Start a [discussion](https://github.com/YOUR_USERNAME/hermes-vps-cluster/discussions) for questions
+- Open an [issue](https://github.com/alfriprata/hermes-vps-cluster/issues) for bugs
+- Start a [discussion](https://github.com/alfriprata/hermes-vps-cluster/discussions) for questions
 
 ---
 
