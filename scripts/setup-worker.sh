@@ -155,34 +155,24 @@ fi
 echo ""
 echo -e "${YELLOW}[6/6] Validating config...${NC}"
 
-# Test YAML syntax
-if python3 -c "import yaml; yaml.safe_load(open('$CONFIG_FILE'))" 2>/dev/null; then
-    echo -e "${GREEN}  ✓ Config YAML valid${NC}"
-elif python3 -c "
-import json, sys
-try:
-    # Simple YAML validation without PyYAML
-    with open('$CONFIG_FILE') as f:
-        content = f.read()
-    # Check for basic syntax errors
-    if content.strip():
-        print('OK')
-except Exception as e:
-    print(f'Error: {e}', file=sys.stderr)
-    sys.exit(1)
-" 2>/dev/null; then
-    echo -e "${GREEN}  ✓ Config file readable${NC}"
-else
-    echo -e "${RED}  ✗ Config file invalid!${NC}"
-    echo -e "${YELLOW}  Restoring backup...${NC}"
-    
-    if [ -f "$BACKUP_DIR/config.yaml.backup" ]; then
-        cp "$BACKUP_DIR/config.yaml.backup" "$CONFIG_FILE"
-        echo -e "${GREEN}  ✓ Config restored from backup${NC}"
+# Test YAML syntax (optional - skip if PyYAML not installed)
+if python3 -c "import yaml" 2>/dev/null; then
+    if python3 -c "import yaml; yaml.safe_load(open('$CONFIG_FILE'))" 2>/dev/null; then
+        echo -e "${GREEN}  ✓ Config YAML valid${NC}"
+    else
+        echo -e "${RED}  ✗ Config YAML invalid!${NC}"
+        echo -e "${YELLOW}  Restoring backup...${NC}"
+        
+        if [ -f "$BACKUP_DIR/config.yaml.backup" ]; then
+            cp "$BACKUP_DIR/config.yaml.backup" "$CONFIG_FILE"
+            echo -e "${GREEN}  ✓ Config restored from backup${NC}"
+        fi
+        
+        echo -e "${RED}  Setup failed. Please check your config manually.${NC}"
+        exit 1
     fi
-    
-    echo -e "${RED}  Setup failed. Please check your config manually.${NC}"
-    exit 1
+else
+    echo -e "${YELLOW}  ⚠ PyYAML not installed, skipping YAML validation${NC}"
 fi
 
 # ============================================
