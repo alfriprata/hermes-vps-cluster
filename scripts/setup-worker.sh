@@ -1,48 +1,87 @@
 #!/bin/bash
 # ============================================
 # Hermes VPS Cluster - Worker Setup Script
-# Version: 1.0.0
+# Version: 2.1.0 (Safe Mode)
 # Description: Configure a Hermes Agent VPS as a cluster worker
 # ============================================
 
 set -e
 
-# Colors for output
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 # Banner
 echo -e "${BLUE}"
 echo "╔══════════════════════════════════════════════════╗"
 echo "║       Hermes VPS Cluster - Worker Setup          ║"
+echo "║                  v2.1.0 Safe Mode                ║"
 echo "╚══════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-# Check if Hermes is installed
+# ============================================
+# Prerequisite Checks
+# ============================================
+echo -e "${YELLOW}[1/6] Checking prerequisites...${NC}"
+
+# Check Hermes
 if ! command -v hermes &> /dev/null; then
-    echo -e "${RED}ERROR: Hermes Agent is not installed${NC}"
-    echo "Install it first: curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash"
+    echo -e "${RED}ERROR: Hermes Agent not found${NC}"
+    echo "Install first: curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash"
     exit 1
 fi
+echo -e "${GREEN}  ✓ Hermes Agent found${NC}"
 
-echo -e "${GREEN}✓ Hermes Agent found${NC}"
-
-# Check if gateway is configured
+# Check config directory
 if [ ! -d "$HOME/.hermes" ]; then
     echo -e "${RED}ERROR: Hermes not configured. Run 'hermes setup' first${NC}"
     exit 1
 fi
+echo -e "${GREEN}  ✓ Hermes config found${NC}"
 
-echo -e "${GREEN}✓ Hermes configuration found${NC}"
+# Check if gateway is running BEFORE changes
 echo ""
+echo -e "${YELLOW}[2/6] Checking current gateway status...${NC}"
+
+GATEWAY_WAS_RUNNING=false
+if hermes gateway status 2>/dev/null | grep -qi "running"; then
+    GATEWAY_WAS_RUNNING=true
+    echo -e "${GREEN}  ✓ Gateway is running${NC}"
+else
+    echo -e "${YELLOW}  ⚠ Gateway is not running (will start after setup)${NC}"
+fi
+
+# ============================================
+# Backup Current Config
+# ============================================
+echo ""
+echo -e "${YELLOW}[3/6] Creating backups...${NC}"
+
+BACKUP_DIR="$HOME/.hermes/backups/$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$BACKUP_DIR"
+
+# Backup .env
+if [ -f "$HOME/.hermes/.env" ]; then
+    cp "$HOME/.hermes/.env" "$BACKUP_DIR/.env.backup"
+    echo -e "${GREEN}  ✓ .env backed up${NC}"
+fi
+
+# Backup config.yaml
+if [ -f "$HOME/.hermes/config.yaml" ]; then
+    cp "$HOME/.hermes/config.yaml" "$BACKUP_DIR/config.yaml.backup"
+    echo -e "${GREEN}  ✓ config.yaml backed up${NC}"
+fi
+
+echo -e "${GREEN}  ✓ Backups saved to: $BACKUP_DIR${NC}"
 
 # ============================================
 # Generate API Key
 # ============================================
-echo -e "${YELLOW}Step 1: Generating API Key...${NC}"
+echo ""
+echo -e "${YELLOW}[4/6] Generating API key...${NC}"
 
 API_KEY=$(openssl rand -hex 32)
 
@@ -50,24 +89,21 @@ API_KEY=$(openssl rand -hex 32)
 echo "$API_KEY" > "$HOME/.hermes/.worker_api_key"
 chmod 600 "$HOME/.hermes/.worker_api_key"
 
-echo -e "${GREEN}✓ API key generated${NC}"
+echo -e "${GREEN}  ✓ API key generated${NC}"
 
 # ============================================
-# Configure Environment
+# Configure Environment (.env)
 # ============================================
 echo ""
-echo -e "${YELLOW}Step 2: Configuring environment...${NC}"
+echo -e "${YELLOW}[5/6] Configuring environment...${NC}"
 
 ENV_FILE="$HOME/.hermes/.env"
 
-# Check if API_SERVER already configured
-if grep -q "API_SERVER_ENABLED" "$ENV_FILE" 2>/dev/null; then
-    echo -e "${YELLOW}  API server already configured, updating...${NC}"
-    # Remove old config
-    sed -i '/API_SERVER_ENABLED/d' "$ENV_FILE"
-    sed -i '/API_SERVER_PORT/d' "$ENV_FILE"
-    sed -i '/API_SERVER_HOST/d' "$ENV_FILE"
-    sed -i '/API_SERVER_KEY/d' "$ENV_FILE"
+# Remove old API_SERVER config if exists
+if [ -f "$ENV_FILE" ]; then
+    # Create temp file without old config
+    grep -v "^API_SERVER_" "$ENV_FILE" > "${ENV_FILE}.tmp" 2>/dev/null || true
+    mv "${ENV_FILE}.tmp" "$ENV_FILE"
 fi
 
 # Add new config
@@ -80,24 +116,18 @@ API_SERVER_HOST=0.0.0.0
 API_SERVER_KEY=$API_KEY
 EOF
 
-echo -e "${GREEN}✓ Environment configured${NC}"
+echo -e "${GREEN}  ✓ Environment configured${NC}"
 
 # ============================================
-# Configure YAML
+# Configure YAML (SAFE - only add if not exists)
 # ============================================
-echo ""
-echo -e "${YELLOW}Step 3: Updating Hermes config...${NC}"
-
 CONFIG_FILE="$HOME/.hermes/config.yaml"
 
-# Backup existing config
-if [ -f "$CONFIG_FILE" ]; then
-    cp "$CONFIG_FILE" "${CONFIG_FILE}.backup.$(date +%Y%m%d%H%M%S)"
-    echo -e "${GREEN}  ✓ Config backed up${NC}"
-fi
-
-# Check if api_server section exists
-if ! grep -q "api_server:" "$CONFIG_FILE" 2>/dev/null; then
+# Check if api_server already configured
+if grep -q "api_server:" "$CONFIG_FILE" 2>/dev/null; then
+    echo -e "${YELLOW}  ⚠ API server config already exists, skipping${NC}"
+else
+    # Add api_server config
     cat >> "$CONFIG_FILE" << EOF
 
 # === Hermes VPS Cluster - API Server ===
@@ -106,89 +136,132 @@ api_server:
   port: 8642
   host: "0.0.0.0"
 EOF
-    echo -e "${GREEN}✓ API server config added${NC}"
-else
-    echo -e "${YELLOW}  API server config already exists, skipping${NC}"
+    echo -e "${GREEN}  ✓ API server config added${NC}"
 fi
 
 # ============================================
 # Configure Firewall
 # ============================================
-echo ""
-echo -e "${YELLOW}Step 4: Configuring firewall...${NC}"
-
 if command -v ufw &> /dev/null; then
-    # Check if port is already allowed
-    if sudo ufw status | grep -q "8642/tcp"; then
-        echo -e "${YELLOW}  Port 8642 already allowed${NC}"
-    else
-        sudo ufw allow 8642/tcp comment "Hermes VPS Cluster - API Server"
-        echo -e "${GREEN}✓ Port 8642 opened${NC}"
+    if ! sudo ufw status | grep -q "8642/tcp"; then
+        sudo ufw allow 8642/tcp comment "Hermes VPS Cluster" 2>/dev/null || true
+        echo -e "${GREEN}  ✓ Port 8642 opened${NC}"
     fi
-elif command -v firewall-cmd &> /dev/null; then
-    sudo firewall-cmd --permanent --add-port=8642/tcp
-    sudo firewall-cmd --reload
-    echo -e "${GREEN}✓ Port 8642 opened (firewalld)${NC}"
-else
-    echo -e "${YELLOW}  WARNING: No firewall detected. Ensure port 8642 is accessible.${NC}"
 fi
 
 # ============================================
-# Restart Gateway
+# Test Config Before Restart
 # ============================================
 echo ""
-echo -e "${YELLOW}Step 5: Restarting Hermes gateway...${NC}"
+echo -e "${YELLOW}[6/6] Validating config...${NC}"
 
+# Test YAML syntax
+if python3 -c "import yaml; yaml.safe_load(open('$CONFIG_FILE'))" 2>/dev/null; then
+    echo -e "${GREEN}  ✓ Config YAML valid${NC}"
+else
+    echo -e "${RED}  ✗ Config YAML invalid!${NC}"
+    echo -e "${YELLOW}  Restoring backup...${NC}"
+    
+    if [ -f "$BACKUP_DIR/config.yaml.backup" ]; then
+        cp "$BACKUP_DIR/config.yaml.backup" "$CONFIG_FILE"
+        echo -e "${GREEN}  ✓ Config restored from backup${NC}"
+    fi
+    
+    echo -e "${RED}  Setup failed. Please check your config manually.${NC}"
+    exit 1
+fi
+
+# ============================================
+# Restart Gateway (with rollback on failure)
+# ============================================
+echo ""
+echo -e "${YELLOW}Restarting gateway...${NC}"
+
+# Stop gateway
 hermes gateway stop 2>/dev/null || true
 sleep 2
-hermes gateway install 2>/dev/null || true
-hermes gateway start
 
-echo -e "${GREEN}✓ Gateway restarted${NC}"
-
-# ============================================
-# Verify
-# ============================================
-echo ""
-echo -e "${YELLOW}Step 6: Verifying setup...${NC}"
-
-sleep 3
-
-# Test health endpoint
-if curl -s -m 5 http://localhost:8642/health | grep -q "ok"; then
-    echo -e "${GREEN}✓ API server is running${NC}"
+# Start gateway
+if hermes gateway start 2>&1; then
+    sleep 3
+    
+    # Check if gateway started successfully
+    if hermes gateway status 2>/dev/null | grep -qi "running"; then
+        echo -e "${GREEN}  ✓ Gateway started successfully${NC}"
+    else
+        echo -e "${RED}  ✗ Gateway failed to start!${NC}"
+        echo -e "${YELLOW}  Rolling back changes...${NC}"
+        
+        # Rollback
+        if [ -f "$BACKUP_DIR/.env.backup" ]; then
+            cp "$BACKUP_DIR/.env.backup" "$HOME/.hermes/.env"
+        fi
+        if [ -f "$BACKUP_DIR/config.yaml.backup" ]; then
+            cp "$BACKUP_DIR/config.yaml.backup" "$CONFIG_FILE"
+        fi
+        
+        # Try to start with old config
+        hermes gateway start 2>/dev/null || true
+        
+        echo -e "${RED}  Setup failed. Changes rolled back.${NC}"
+        echo -e "${YELLOW}  Backup saved at: $BACKUP_DIR${NC}"
+        exit 1
+    fi
 else
-    echo -e "${RED}✗ API server not responding${NC}"
-    echo "  Try: hermes gateway status"
-    echo "  Check: tail -f ~/.hermes/logs/gateway.log"
+    echo -e "${RED}  ✗ Gateway start command failed!${NC}"
+    echo -e "${YELLOW}  Rolling back changes...${NC}"
+    
+    # Rollback
+    if [ -f "$BACKUP_DIR/.env.backup" ]; then
+        cp "$BACKUP_DIR/.env.backup" "$HOME/.hermes/.env"
+    fi
+    if [ -f "$BACKUP_DIR/config.yaml.backup" ]; then
+        cp "$BACKUP_DIR/config.yaml.backup" "$CONFIG_FILE"
+    fi
+    
+    hermes gateway start 2>/dev/null || true
+    
+    echo -e "${RED}  Setup failed. Changes rolled back.${NC}"
+    exit 1
 fi
 
-# Get IP address
+# ============================================
+# Verify API Server
+# ============================================
+echo ""
+echo -e "${YELLOW}Verifying API server...${NC}"
+
+sleep 2
+
+if curl -s -m 5 http://localhost:8642/health | grep -q "ok"; then
+    echo -e "${GREEN}  ✓ API server is running${NC}"
+else
+    echo -e "${YELLOW}  ⚠ API server not responding (may need more time)${NC}"
+fi
+
+# ============================================
+# Success!
+# ============================================
 IP=$(hostname -I | awk '{print $1}')
 
-# ============================================
-# Display Results
-# ============================================
 echo ""
-echo -e "${BLUE}╔══════════════════════════════════════════════════╗"
-echo -e "║            Worker Setup Complete!                 ║"
-echo -e "╚══════════════════════════════════════════════════╝${NC}"
+echo -e "${GREEN}══════════════════════════════════════════════════════${NC}"
 echo ""
-echo -e "Send this information to the ${GREEN}Master Bot${NC} setup:"
+echo -e "  ${GREEN}✓ Worker setup complete!${NC}"
 echo ""
-echo -e "  ${YELLOW}┌─────────────────────────────────────────┐${NC}"
-echo -e "  ${YELLOW}│${NC}  Worker Name : $(hostname)"
-echo -e "  ${YELLOW}│${NC}  IP Address  : ${GREEN}$IP${NC}"
-echo -e "  ${YELLOW}│${NC}  Port        : 8642"
-echo -e "  ${YELLOW}│${NC}  API Key     : ${GREEN}$API_KEY${NC}"
-echo -e "  ${YELLOW}└─────────────────────────────────────────┘${NC}"
+echo -e "  Send this to your ${BLUE}Master Bot${NC} admin:"
 echo ""
-echo -e "  API Key saved to: ${BLUE}~/.hermes/.worker_api_key${NC}"
+echo -e "  ${YELLOW}┌─────────────────────────────────────────────┐${NC}"
+echo -e "  ${YELLOW}│${NC}  Hostname  : $(hostname)"
+echo -e "  ${YELLOW}│${NC}  IP Address: ${GREEN}$IP${NC}"
+echo -e "  ${YELLOW}│${NC}  Port      : 8642"
+echo -e "  ${YELLOW}│${NC}  API Key   : ${GREEN}$API_KEY${NC}"
+echo -e "  ${YELLOW}└─────────────────────────────────────────────┘${NC}"
 echo ""
-
-# Verification commands
-echo -e "${YELLOW}Verification commands:${NC}"
-echo "  curl -s http://localhost:8642/health"
-echo "  curl -s -H 'Authorization: Bearer $API_KEY' http://localhost:8642/v1/models"
+echo -e "  ${YELLOW}Backup location:${NC} $BACKUP_DIR"
 echo ""
-echo -e "${GREEN}Setup complete! This VPS is now a cluster worker.${NC}"
+echo -e "  ${YELLOW}If something went wrong, restore backup:${NC}"
+echo "    cp $BACKUP_DIR/.env.backup ~/.hermes/.env"
+echo "    cp $BACKUP_DIR/config.yaml.backup ~/.hermes/config.yaml"
+echo "    hermes gateway stop && hermes gateway start"
+echo ""
