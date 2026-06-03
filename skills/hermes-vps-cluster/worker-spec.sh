@@ -42,6 +42,7 @@ print('  code       - Code generation, debugging')
 print('  data       - Data processing, analysis')
 print('  creative   - Writing, content creation')
 print('  support    - Customer support, FAQ')
+print('  <custom>   - Any custom specialization you define')
 "
 }
 
@@ -53,8 +54,11 @@ set_specialization() {
     if [ -z "$worker_name" ] || [ -z "$specialization" ]; then
         echo "Usage: worker-spec.sh set <worker_name> <specialization>"
         echo ""
-        echo "Available specializations:"
-        echo "  general, research, code, data, creative, support"
+        echo "Examples:"
+        echo "  worker-spec.sh set bot1 trading"
+        echo "  worker-spec.sh set bot2 research"
+        echo "  worker-spec.sh set bot3 monitoring"
+        echo "  worker-spec.sh set bot4 frontend"
         exit 1
     fi
     
@@ -100,18 +104,11 @@ print('✓ Specialization field added to all workers')
 "
 }
 
-# Route task based on specialization
-route_by_specialization() {
-    local task="$1"
-    local specialization="$2"
+# Find worker by specialization
+find_by_specialization() {
+    local specialization="$1"
     
-    if [ -z "$task" ]; then
-        echo "Usage: worker-spec.sh route 'task' <specialization>"
-        exit 1
-    fi
-    
-    # Find worker with matching specialization
-    WORKER=$(python3 -c "
+    python3 -c "
 import json, urllib.request
 
 with open('$CONFIG_FILE') as f:
@@ -122,8 +119,12 @@ matching = []
 for w in data['workers']:
     if not w.get('enabled', True):
         continue
-    if w.get('specialization', 'general') == '${specialization:-general}' or '${specialization:-general}' == 'general':
+    if w.get('specialization', 'general') == '$specialization':
         matching.append(w)
+
+if not matching:
+    # Fallback to general workers
+    matching = [w for w in data['workers'] if w.get('enabled', True) and w.get('specialization', 'general') == 'general']
 
 if not matching:
     # Fallback to any enabled worker
@@ -132,55 +133,21 @@ if not matching:
 if not matching:
     print('NONE')
 else:
-    # Check which is alive and pick first available
-    best = None
-    
+    # Return first available worker
     for w in matching:
         try:
             req = urllib.request.Request(
-                f\"http://{w['ip']}:{w['port']}/health\",
+                f\"http://{w['ip']}:{w['port']}/v1/models\",
                 headers={'Authorization': f\"Bearer {w['api_key']}\"}
             )
             urllib.request.urlopen(req, timeout=5)
-            print(f\"{w['name']}|{w['ip']}|{w['port']}|{w['api_key']}\")
+            print(f\"{w['name']}|{w['ip']}|{w['port']}|{w['api_key']}|{w.get('specialization', 'general')}\")
             break
         except:
             continue
     else:
         print('ALL_DOWN')
-" 2>/dev/null)
-    
-    if [ "$WORKER" = "NONE" ]; then
-        echo "ERROR: No workers available"
-        return 1
-    fi
-    
-    if [ "$WORKER" = "ALL_DOWN" ]; then
-        echo "ERROR: All workers are down"
-        return 1
-    fi
-    
-    IFS='|' read -r name ip port api_key <<< "$WORKER"
-    
-    echo "Routing to $name (specialization: ${specialization:-general})..."
-    
-    RESULT=$(curl -s -m 120 -H "Authorization: Bearer $api_key" \
-        "http://$ip:$port/v1/chat/completions" \
-        -H "Content-Type: application/json" \
-        -d "{
-            \"model\": \"hermes-agent\",
-            \"messages\": [{\"role\": \"user\", \"content\": $(echo "$task" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))')}],
-            \"stream\": false
-        }" 2>/dev/null)
-    
-    echo "$RESULT" | python3 -c "
-import json, sys
-try:
-    data = json.load(sys.stdin)
-    print(data['choices'][0]['message']['content'])
-except Exception as e:
-    print(f'Error: {e}')
-"
+" 2>/dev/null
 }
 
 # Initialize specializations
@@ -199,8 +166,8 @@ case "${1:-}" in
     "set")
         set_specialization "$2" "$3"
         ;;
-    "route")
-        route_by_specialization "$2" "$3"
+    "find")
+        find_by_specialization "$2"
         ;;
     "init")
         init
@@ -209,16 +176,19 @@ case "${1:-}" in
         echo "Usage:"
         echo "  worker-spec.sh show                          # Show current specializations"
         echo "  worker-spec.sh set <worker> <specialization>  # Set worker specialization"
-        echo "  worker-spec.sh route 'task' <specialization>  # Route by specialization"
+        echo "  worker-spec.sh find <specialization>          # Find worker by specialization"
         echo "  worker-spec.sh init                           # Initialize specializations"
         echo ""
-        echo "Available specializations:"
-        echo "  general    - Can handle any task (default)"
-        echo "  research   - Web research, data gathering"
-        echo "  code       - Code generation, debugging"
-        echo "  data       - Data processing, analysis"
-        echo "  creative   - Writing, content creation"
-        echo "  support    - Customer support, FAQ"
+        echo "Examples:"
+        echo "  worker-spec.sh set bot1 trading"
+        echo "  worker-spec.sh set bot2 research"
+        echo "  worker-spec.sh set bot3 monitoring"
+        echo "  worker-spec.sh find research"
+        echo ""
+        echo "Common specializations:"
+        echo "  general, research, code, data, creative, support"
+        echo "  trading, monitoring, frontend, backend, devops"
+        echo "  (you can use any custom specialization)"
         exit 1
         ;;
 esac

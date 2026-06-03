@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2026-06-03
+
+### Added
+
+- **Smart Specialization-Based Routing**
+  - Manager analyzes tasks using keyword matching
+  - Routes to Worker with matching specialization
+  - Fallback to "general" Worker if no match
+  - Fallback to any Worker if no "general" Worker
+
+- **Worker Specialization Management**
+  - Set specialization for each Worker: `worker-spec.sh set <name> <spec>`
+  - Show all specializations: `worker-spec.sh show`
+  - Find Worker by specialization: `worker-spec.sh find <spec>`
+  - Custom specializations (not limited to predefined ones)
+
+- **Auto-Detection Keywords**
+  - research: research, find, search, analyze, study
+  - code: code, program, debug, develop, build, deploy
+  - data: data, process, calculate, statistics, analytics
+  - creative: write, create, design, content, article
+  - support: help, support, assist, question, answer
+  - trading: trade, buy, sell, price, market, crypto
+  - monitoring: monitor, check, status, health, uptime
+  - devops: deploy, server, infrastructure, docker
+  - frontend: ui, ux, frontend, react, vue, angular
+  - backend: backend, api, database, server, node
+
+### Changed
+
+- `route_task.sh` now analyzes tasks and routes based on specialization
+- `worker-spec.sh` now supports custom specializations
+- `skill.yaml` updated to v4.0.0
+
+### Why
+
+Different VPS can be specialized for different tasks. Users define what each Worker is for, and the Manager intelligently routes tasks to the right Worker.
+
+---
+
 ## [3.1.0] - 2026-06-03
 
 ### Changed
