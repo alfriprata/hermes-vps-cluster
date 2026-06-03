@@ -36,10 +36,10 @@ else
     # Analyze task to determine specialization
     # This uses keyword matching - simple but effective
     DETECTED_SPEC=$(python3 -c "
-task = '''$TASK'''.lower()
+import sys
+task = sys.stdin.read().strip().lower()
 
 # Define keyword → specialization mapping
-# Users can customize this by editing their workers.json
 keywords = {
     'research': ['research', 'find', 'search', 'look up', 'analyze', 'study', 'investigate', 'compare'],
     'code': ['code', 'program', 'debug', 'fix', 'develop', 'build', 'deploy', 'script', 'function', 'api'],
@@ -64,7 +64,7 @@ for spec, words in keywords.items():
         best_spec = spec
 
 print(best_spec)
-" 2>/dev/null)
+" <<< "$TASK" 2>/dev/null)
     
     echo "Specialization: $DETECTED_SPEC (auto-detected)"
 fi

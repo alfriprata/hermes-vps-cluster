@@ -34,15 +34,17 @@ add_task() {
     TASK_ID="task_$(date +%s)_$RANDOM"
     
     python3 -c "
-import json
+import json, sys
 from datetime import datetime
+
+task = sys.stdin.read().strip()
 
 with open('$QUEUE_FILE', 'r') as f:
     queue = json.load(f)
 
 queue['tasks'].append({
     'id': '$TASK_ID',
-    'task': '''$task''',
+    'task': task,
     'priority': '$priority',
     'specialization': '$specialization',
     'status': 'pending',
@@ -57,7 +59,7 @@ queue['tasks'].sort(key=lambda x: priority_order.get(x['priority'], 1))
 
 with open('$QUEUE_FILE', 'w') as f:
     json.dump(queue, f, indent=2)
-"
+" <<< "$task"
     
     log "Task added: $TASK_ID (priority: $priority, specialization: $specialization)"
     echo "Task queued: $TASK_ID"

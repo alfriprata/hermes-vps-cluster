@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.1] - 2026-06-03
+
+### Fixed
+
+- **Task escaping bug** in `route_task.sh`, `task-queue.sh`
+  - Tasks with special characters (quotes, newlines) could break Python code
+  - Fixed by using stdin pipe instead of triple quotes
+
+- **YAML validation** in `setup-worker.sh`
+  - Added fallback validation when PyYAML is not installed
+  - Now checks if file is readable instead of requiring PyYAML
+
+### Security
+
+- Improved input handling to prevent injection attacks
+
+---
+
 ## [4.0.0] - 2026-06-03
 
 ### Added

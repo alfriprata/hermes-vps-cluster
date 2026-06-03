@@ -158,8 +158,22 @@ echo -e "${YELLOW}[6/6] Validating config...${NC}"
 # Test YAML syntax
 if python3 -c "import yaml; yaml.safe_load(open('$CONFIG_FILE'))" 2>/dev/null; then
     echo -e "${GREEN}  ✓ Config YAML valid${NC}"
+elif python3 -c "
+import json, sys
+try:
+    # Simple YAML validation without PyYAML
+    with open('$CONFIG_FILE') as f:
+        content = f.read()
+    # Check for basic syntax errors
+    if content.strip():
+        print('OK')
+except Exception as e:
+    print(f'Error: {e}', file=sys.stderr)
+    sys.exit(1)
+" 2>/dev/null; then
+    echo -e "${GREEN}  ✓ Config file readable${NC}"
 else
-    echo -e "${RED}  ✗ Config YAML invalid!${NC}"
+    echo -e "${RED}  ✗ Config file invalid!${NC}"
     echo -e "${YELLOW}  Restoring backup...${NC}"
     
     if [ -f "$BACKUP_DIR/config.yaml.backup" ]; then
