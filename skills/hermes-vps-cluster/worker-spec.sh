@@ -132,9 +132,8 @@ if not matching:
 if not matching:
     print('NONE')
 else:
-    # Check which is alive and has most storage
+    # Check which is alive and pick first available
     best = None
-    best_avail = 0
     
     for w in matching:
         try:

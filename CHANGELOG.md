@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-06-03
+
+### Changed
+
+- **Simplified routing logic** - no more storage-based routing
+  - `route_task.sh` now picks first available worker
+  - `failover.sh` now picks first available worker
+  - `worker-spec.sh` now picks first available worker
+  - Storage info still shown in `check_workers.sh` for monitoring
+
+### Removed
+
+- Storage-based routing logic from all scripts
+- "Storage-based routing" from README and documentation
+
+### Why
+
+User doesn't need storage-based routing. Simpler logic = fewer dependencies, faster execution, easier to understand.
+
+---
+
+## [3.0.1] - 2026-06-03
+
+### Fixed
+
+- Removed all MCP references from scripts
+- Updated `quickstart.sh` to not add MCP config
+- Updated `config-templates/master.config.yaml` to reference workers.json
+- Updated `test-cluster.sh` to not check MCP config
+
+---
+
 ## [3.0.0] - 2026-06-03
 
 ### Fixed

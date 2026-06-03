@@ -1,16 +1,16 @@
 name: "hermes-vps-cluster"
-description: "Manage and route tasks across a cluster of Hermes Agent VPS with auto-failover, health monitoring, task queue, and worker specialization"
-version: "2.0.0"
+description: "Manage and route tasks across multiple Hermes Agent VPS with auto-failover, health monitoring, task queue, and worker specialization"
+version: "3.1.0"
 author: "Hermes VPS Cluster"
 
 tools:
   # Basic Commands
   - name: "check_workers"
-    description: "Check status and storage of all worker bots"
+    description: "Check status of all worker bots"
     script: "check_workers.sh"
     
   - name: "route_task"
-    description: "Route task to worker with most available storage"
+    description: "Route task to first available worker"
     script: "route_task.sh"
     
   - name: "send_to_worker"
