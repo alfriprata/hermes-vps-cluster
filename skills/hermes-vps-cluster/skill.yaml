@@ -1,0 +1,17 @@
+name: "hermes-vps-cluster"
+description: "Manage and route tasks across a cluster of Hermes Agent VPS"
+version: "1.0.0"
+author: "Hermes VPS Cluster"
+
+tools:
+  - name: "check_workers"
+    description: "Check status and storage of all worker bots"
+    script: "check_workers.sh"
+    
+  - name: "route_task"
+    description: "Route task to worker with most available storage"
+    script: "route_task.sh"
+    
+  - name: "send_to_worker"
+    description: "Send task to a specific worker"
+    script: "send_to_worker.sh"

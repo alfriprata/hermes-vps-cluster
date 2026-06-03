@@ -1,0 +1,41 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Config with secrets
+config.yaml
+workers.json
+.worker_api_key
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup

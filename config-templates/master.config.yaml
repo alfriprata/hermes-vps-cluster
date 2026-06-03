@@ -1,0 +1,45 @@
+# ============================================
+# Hermes VPS Cluster - Master Config Template
+# Add this to ~/.hermes/config.yaml on master VPS
+# ============================================
+
+# Add the following to your existing config.yaml:
+
+mcp_servers:
+  # Worker Bot 2
+  bot2:
+    url: "http://WORKER_2_IP:8642/mcp"
+    headers:
+      Authorization: "Bearer WORKER_2_API_KEY"
+    timeout: 30
+    enabled: true
+
+  # Worker Bot 3
+  bot3:
+    url: "http://WORKER_3_IP:8642/mcp"
+    headers:
+      Authorization: "Bearer WORKER_3_API_KEY"
+    timeout: 30
+    enabled: true
+
+  # Worker Bot 4
+  bot4:
+    url: "http://WORKER_4_IP:8642/mcp"
+    headers:
+      Authorization: "Bearer WORKER_4_API_KEY"
+    timeout: 30
+    enabled: true
+
+  # Worker Bot 5
+  bot5:
+    url: "http://WORKER_5_IP:8642/mcp"
+    headers:
+      Authorization: "Bearer WORKER_5_API_KEY"
+    timeout: 30
+    enabled: true
+
+# ============================================
+# Replace:
+#   WORKER_X_IP with actual worker IP address
+#   WORKER_X_API_KEY with actual API key
+# ============================================
