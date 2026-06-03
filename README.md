@@ -145,9 +145,9 @@ If a Worker is down → Manager automatically tries the next Worker.
 
 ## Use Cases
 
-- **Crypto agents** monitoring different exchanges
-- **Bots running tasks** across multiple VPS
 - **Any multi-VPS setup** where you want centralized control
+- **Bots running tasks** across multiple VPS
+- **Distributed workloads** that need automatic failover
 
 ---
 
