@@ -45,12 +45,19 @@
 
 ## Features
 
+### Core Features
 - **Automatic Storage-Based Routing** — Tasks are sent to the worker with the most available storage
 - **Health Monitoring** — Check status of all workers with a single command
 - **Simple Setup** — One script install, works with existing Hermes Agent installations
 - **Scalable** — Add new workers anytime by running the setup script on a new VPS
 - **Telegram Integration** — Manage everything from your Telegram bot
 - **No External Dependencies** — Uses Hermes Agent's built-in API server
+
+### Advanced Features (v2.0)
+- **Auto-Failover** — If a worker is down, tasks automatically route to the next available worker
+- **Health Monitor (Cron)** — Periodic health checks with Telegram notifications when issues occur
+- **Task Queue** — When all workers are busy, tasks are queued and processed when workers become available
+- **Worker Specialization** — Assign roles to workers (research, code, data, creative, support) for intelligent routing
 
 ---
 
@@ -167,6 +174,31 @@ You: "Which server has the most space?"
 Master: [Checks all workers and recommends one]
 ```
 
+### Advanced Commands (v2.0)
+
+| Command | Description |
+|---------|-------------|
+| `/failover run <task>` | Execute with auto-failover if worker is down |
+| `/health_monitor run` | Run health check now |
+| `/health_monitor install 30` | Install health check every 30 minutes |
+| `/task_queue add <task> [priority]` | Add task to queue (low/normal/high) |
+| `/task_queue process` | Process next task in queue |
+| `/task_queue status` | Show queue status |
+| `/worker_spec show` | Show worker specializations |
+| `/worker_spec set <worker> <spec>` | Set worker specialization |
+| `/worker_spec route <task> <spec>` | Route to specialized worker |
+
+### Worker Specializations
+
+| Specialization | Use Case |
+|---------------|----------|
+| `general` | Can handle any task (default) |
+| `research` | Web research, data gathering |
+| `code` | Code generation, debugging |
+| `data` | Data processing, analysis |
+| `creative` | Writing, content creation |
+| `support` | Customer support, FAQ |
+
 ---
 
 ## How It Works
@@ -187,7 +219,9 @@ Master: [Checks all workers and recommends one]
 hermes-vps-cluster/
 ├── README.md                    # This file
 ├── LICENSE                      # MIT License
+├── CHANGELOG.md                 # Version history
 ├── .gitignore                   # Git ignore rules
+├── quickstart.sh                # One-command setup
 ├── scripts/
 │   ├── setup-worker.sh          # Worker VPS setup script
 │   ├── setup-master.sh          # Master VPS setup script
@@ -200,7 +234,11 @@ hermes-vps-cluster/
 │       ├── skill.yaml           # Skill definition
 │       ├── check_workers.sh     # Health check command
 │       ├── route_task.sh        # Auto-routing command
-│       └── send_to_worker.sh    # Direct worker command
+│       ├── send_to_worker.sh    # Direct worker command
+│       ├── failover.sh          # Auto-failover logic
+│       ├── health-monitor.sh    # Health monitoring (cron)
+│       ├── task-queue.sh        # Task queue management
+│       └── worker-spec.sh       # Worker specialization
 └── docs/
     ├── INSTALL.md               # Detailed installation guide
     ├── TROUBLESHOOTING.md       # Common issues and fixes

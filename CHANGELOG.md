@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-06-03
+
+### Added
+
+- **Auto-Failover** (`failover.sh`)
+  - Automatically routes to backup worker if primary is down
+  - Logs failover events for debugging
+  - CLI: `failover.sh run 'task' [worker] [specialization]`
+
+- **Health Monitor** (`health-monitor.sh`)
+  - Periodic health checks for all workers
+  - Telegram notifications when workers go down or storage is critical
+  - Status tracking with JSON history
+  - Cron job installation: `health-monitor.sh install [interval]`
+
+- **Task Queue** (`task-queue.sh`)
+  - Queue tasks when all workers are busy
+  - Priority levels: low, normal, high
+  - Automatic retry with configurable max retries
+  - CLI: `task-queue.sh add 'task' [priority] [specialization]`
+
+- **Worker Specialization** (`worker-spec.sh`)
+  - Assign roles to workers: general, research, code, data, creative, support
+  - Route tasks to specialized workers
+  - CLI: `worker-spec.sh set <worker> <specialization>`
+
+- **Quickstart Script** (`quickstart.sh`)
+  - One-command setup for both master and worker
+  - Flags: `--worker`, `--master`
+  - Interactive mode when no flag provided
+
+### Changed
+
+- Updated skill definition to v2.0.0
+- Enhanced README with advanced features documentation
+- Updated project structure with new files
+
+---
+
 ## [1.0.0] - 2026-06-03
 
 ### Added
@@ -35,21 +74,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Planned
 
-### [1.1.0] - Planned
+### [2.1.0] - Planned
 
 - [ ] Auto-discovery of workers via DNS
 - [ ] Health check dashboard (web UI)
-- [ ] Automatic failover
 - [ ] Load balancing algorithms (round-robin, CPU-based)
-
-### [1.2.0] - Planned
-
 - [ ] Worker-to-worker communication
-- [ ] Shared memory/context across cluster
-- [ ] Task queue with retry logic
-- [ ] Webhook notifications for failures
 
-### [2.0.0] - Planned
+### [2.2.0] - Planned
+
+- [ ] Shared memory/context across cluster
+- [ ] Webhook notifications for failures
+- [ ] Cost tracking per worker
+- [ ] Parallel task execution
+
+### [3.0.0] - Planned
 
 - [ ] Docker support
 - [ ] Kubernetes Helm chart
