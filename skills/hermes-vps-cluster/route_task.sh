@@ -1,8 +1,8 @@
 #!/bin/bash
 # ============================================
-# Route Task to Best Available Worker (API Mode)
+# Route Task to Available Worker (Simple Mode)
 # Part of: Hermes VPS Cluster
-# Uses API server directly (no MCP needed)
+# Just pick any online worker, no storage check
 # ============================================
 
 CONFIG_FILE="$HOME/.hermes/workers.json"
@@ -22,69 +22,48 @@ echo "=== Routing Task ==="
 echo "Task: $TASK"
 echo ""
 
-# Find best worker (most available storage)
-BEST_WORKER=""
-BEST_AVAIL=0
-BEST_IP=""
-BEST_PORT=""
-BEST_KEY=""
+# Find first available worker
+SELECTED_WORKER=""
 
-python3 -c "
-import json, sys
+while IFS='|' read -r name ip port api_key; do
+    echo -n "  Checking $name... "
+    
+    # Simple health check
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 5 \
+        -H "Authorization: Bearer $api_key" \
+        "http://$ip:$port/v1/models" 2>/dev/null)
+    
+    if [ "$HTTP_CODE" = "200" ]; then
+        echo -e "ONLINE"
+        SELECTED_WORKER="$name|$ip|$port|$api_key"
+        break  # Pick first available worker
+    else
+        echo -e "OFFLINE"
+    fi
+done < <(python3 -c "
+import json
 with open('$CONFIG_FILE') as f:
     data = json.load(f)
 for w in data['workers']:
     if w.get('enabled', True):
         print(f\"{w['name']}|{w['ip']}|{w['port']}|{w['api_key']}\")
-" 2>/dev/null | while IFS='|' read -r name ip port api_key; do
-    # Get available storage
-    AVAIL=$(curl -s -m 15 -H "Authorization: Bearer $api_key" \
-        "http://$ip:$port/v1/chat/completions" \
-        -H "Content-Type: application/json" \
-        -d '{
-            "model": "hermes-agent",
-            "messages": [{"role": "user", "content": "Run: df -BG / | tail -1 | awk \"{print \\$4}\". Return ONLY the number, no text."}],
-            "stream": false
-        }' 2>/dev/null | python3 -c "
-import json, sys, re
-try:
-    data = json.load(sys.stdin)
-    content = data['choices'][0]['message']['content']
-    match = re.search(r'(\d+)', content)
-    if match:
-        print(int(match.group(1)))
-    else:
-        print(0)
-except:
-    print(0)
 " 2>/dev/null)
-    
-    echo "  $name: ${AVAIL}GB available"
-    
-    # Track best worker
-    if [ "$AVAIL" -gt "$BEST_AVAIL" ] 2>/dev/null; then
-        BEST_WORKER=$name
-        BEST_AVAIL=$AVAIL
-        BEST_IP=$ip
-        BEST_PORT=$port
-        BEST_KEY=$api_key
-    fi
-done
 
-# Send task to best worker
-if [ -z "$BEST_WORKER" ]; then
+if [ -z "$SELECTED_WORKER" ]; then
     echo ""
     echo "ERROR: No workers available"
     exit 1
 fi
 
+IFS='|' read -r name ip port api_key <<< "$SELECTED_WORKER"
+
 echo ""
-echo "=== Selected: $BEST_WORKER (${BEST_AVAIL}GB free) ==="
+echo "=== Selected: $name ==="
 echo ""
 
-# Execute task via API server
-RESULT=$(curl -s -m 120 -H "Authorization: Bearer $BEST_KEY" \
-    "http://$BEST_IP:$BEST_PORT/v1/chat/completions" \
+# Send task
+RESULT=$(curl -s -m 120 -H "Authorization: Bearer $api_key" \
+    "http://$ip:$port/v1/chat/completions" \
     -H "Content-Type: application/json" \
     -d "{
         \"model\": \"hermes-agent\",
@@ -92,7 +71,7 @@ RESULT=$(curl -s -m 120 -H "Authorization: Bearer $BEST_KEY" \
         \"stream\": false
     }" 2>/dev/null)
 
-echo "=== Result from $BEST_WORKER ==="
+echo "=== Result from $name ==="
 echo "$RESULT" | python3 -c "
 import json, sys
 try:

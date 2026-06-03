@@ -9,7 +9,7 @@
 
 > You have multiple Hermes Agent bots on separate VPS.  
 > Instead of chatting to each bot one by one, you chat to ONE Manager bot.  
-> The Manager routes your tasks to the best available Worker.
+> The Manager routes your tasks to an available Worker.
 
 ---
 
@@ -49,10 +49,9 @@ AFTER (With Manager):
 | Feature | Description |
 |---------|-------------|
 | **1 Manager, N Workers** | Support any number of VPS (3, 5, 10, 20, etc.) |
-| **Storage-Based Routing** | Tasks sent to worker with most free storage |
-| **Auto-Failover** | If worker is down, task goes to next available |
-| **Health Monitoring** | Check all workers with one command |
-| **Task Queue** | If all workers busy, task waits in queue |
+| **Auto-Routing** | Tasks sent to first available Worker |
+| **Auto-Failover** | If Worker is down, task goes to next available |
+| **Health Monitoring** | Check all Workers with one command |
 | **Safe Setup** | Auto-backup, validation, rollback on failure |
 
 ---
@@ -99,15 +98,15 @@ In Telegram, chat with your Manager bot:
 
 ```
 VPS 1  = Manager (you chat here)
-VPS 2  = Worker (research)
-VPS 3  = Worker (code)
-VPS 4  = Worker (data)
-VPS 5  = Worker (general)
-VPS 6  = Worker (general)
-VPS 7  = Worker (general)
-VPS 8  = Worker (general)
-VPS 9  = Worker (general)
-VPS 10 = Worker (general)
+VPS 2  = Worker
+VPS 3  = Worker
+VPS 4  = Worker
+VPS 5  = Worker
+VPS 6  = Worker
+VPS 7  = Worker
+VPS 8  = Worker
+VPS 9  = Worker
+VPS 10 = Worker
 ```
 
 Setup:
@@ -123,40 +122,10 @@ Setup:
 | Command | Description |
 |---------|-------------|
 | `/check_workers` | Show status of all workers |
-| `/route_task <task>` | Send task to best available worker |
+| `/route_task <task>` | Send task to available worker |
 | `/send_to_worker <name> <task>` | Send to specific worker |
 | `/failover run <task>` | Execute with auto-failover |
 | `/health_monitor run` | Check health now |
-| `/task_queue add <task>` | Add task to queue |
-
----
-
-## Project Structure
-
-```
-hermes-vps-cluster/
-├── README.md
-├── LICENSE
-├── CHANGELOG.md
-├── .gitignore
-├── scripts/
-│   ├── setup-worker.sh      # Setup Worker VPS
-│   ├── setup-master.sh      # Setup Manager VPS
-│   └── test-cluster.sh      # Verify setup
-├── skills/
-│   └── hermes-vps-cluster/
-│       ├── check_workers.sh
-│       ├── route_task.sh
-│       ├── send_to_worker.sh
-│       ├── failover.sh
-│       ├── health-monitor.sh
-│       ├── task-queue.sh
-│       └── worker-spec.sh
-└── docs/
-    ├── INSTALL.md
-    ├── TROUBLESHOOTING.md
-    └── SECURITY.md
-```
 
 ---
 
@@ -165,11 +134,10 @@ hermes-vps-cluster/
 When you send a task to the Manager:
 
 1. Manager checks which Workers are online
-2. Manager checks storage on each online Worker
-3. Manager picks the Worker with the most free storage
-4. Manager sends the task to that Worker
-5. Worker executes the task
-6. Manager returns the result to you
+2. Manager picks the first available Worker
+3. Manager sends the task to that Worker
+4. Worker executes the task
+5. Manager returns the result to you
 
 If a Worker is down → Manager automatically tries the next Worker.
 
@@ -178,7 +146,7 @@ If a Worker is down → Manager automatically tries the next Worker.
 ## Use Cases
 
 - **Crypto agents** monitoring different exchanges
-- **Bots accumulating data** that fills storage
+- **Bots running tasks** across multiple VPS
 - **Any multi-VPS setup** where you want centralized control
 
 ---
