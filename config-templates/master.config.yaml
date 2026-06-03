@@ -1,45 +1,41 @@
 # ============================================
 # Hermes VPS Cluster - Master Config Template
-# Add this to ~/.hermes/config.yaml on master VPS
+# Version: 3.0.0 (API Mode)
 # ============================================
 
-# Add the following to your existing config.yaml:
+# NOTE: This file is for reference only.
+# The setup script (setup-master.sh) handles configuration automatically.
+# You do NOT need to manually edit config.yaml for inter-bot communication.
 
-mcp_servers:
-  # Worker Bot 2
-  bot2:
-    url: "http://WORKER_2_IP:8642/mcp"
-    headers:
-      Authorization: "Bearer WORKER_2_API_KEY"
-    timeout: 30
-    enabled: true
+# Workers are configured in ~/.hermes/workers.json
+# Skills use the API server directly (no MCP needed)
 
-  # Worker Bot 3
-  bot3:
-    url: "http://WORKER_3_IP:8642/mcp"
-    headers:
-      Authorization: "Bearer WORKER_3_API_KEY"
-    timeout: 30
-    enabled: true
-
-  # Worker Bot 4
-  bot4:
-    url: "http://WORKER_4_IP:8642/mcp"
-    headers:
-      Authorization: "Bearer WORKER_4_API_KEY"
-    timeout: 30
-    enabled: true
-
-  # Worker Bot 5
-  bot5:
-    url: "http://WORKER_5_IP:8642/mcp"
-    headers:
-      Authorization: "Bearer WORKER_5_API_KEY"
-    timeout: 30
-    enabled: true
+# Example workers.json:
+# {
+#   "workers": [
+#     {
+#       "name": "bot2",
+#       "ip": "203.0.113.10",
+#       "port": 8642,
+#       "api_key": "your-api-key-here",
+#       "enabled": true
+#     },
+#     {
+#       "name": "bot3",
+#       "ip": "203.0.113.11",
+#       "port": 8642,
+#       "api_key": "your-api-key-here",
+#       "enabled": true
+#     }
+#   ]
+# }
 
 # ============================================
-# Replace:
-#   WORKER_X_IP with actual worker IP address
-#   WORKER_X_API_KEY with actual API key
+# Worker API Server Config (on each worker VPS)
 # ============================================
+# Add to worker's ~/.hermes/.env:
+#
+# API_SERVER_ENABLED=true
+# API_SERVER_PORT=8642
+# API_SERVER_HOST=0.0.0.0
+# API_SERVER_KEY=your-api-key-here

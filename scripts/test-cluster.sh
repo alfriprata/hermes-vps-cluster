@@ -97,16 +97,12 @@ else
     fail "workers.json not found (run setup-master.sh first)"
 fi
 
-# Check MCP config
+# Check API server config (no MCP needed)
 CONFIG_FILE="$HOME/.hermes/config.yaml"
 if [ -f "$CONFIG_FILE" ]; then
-    if grep -q "mcp_servers:" "$CONFIG_FILE" 2>/dev/null; then
-        pass "MCP servers configured"
-    else
-        warn "No MCP servers in config.yaml"
-    fi
+    pass "config.yaml exists"
 else
-    fail "config.yaml not found"
+    warn "config.yaml not found (may not be needed)"
 fi
 
 # ============================================

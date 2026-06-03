@@ -286,52 +286,7 @@ for w in data['workers']:
         echo -e "${GREEN}✓ Workers config saved${NC}"
     fi
     
-    # Update config.yaml with MCP servers
-    echo ""
-    echo -e "${YELLOW}Updating Hermes MCP config...${NC}"
-    
-    CONFIG_FILE="$HOME/.hermes/config.yaml"
-    
-    # Backup
-    if [ -f "$CONFIG_FILE" ]; then
-        cp "$CONFIG_FILE" "${CONFIG_FILE}.backup.$(date +%Y%m%d%H%M%S)"
-    fi
-    
-    # Remove old cluster config
-    if grep -q "# === Hermes VPS Cluster ===" "$CONFIG_FILE" 2>/dev/null; then
-        sed '/# === Hermes VPS Cluster ===/,/# === End Hermes VPS Cluster ===/d' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp"
-        mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
-    fi
-    
-    # Generate MCP config
-    MCP_CONFIG="# === Hermes VPS Cluster ===\nmcp_servers:\n"
-    
-    while IFS= read -r line; do
-        NAME=$(echo "$line" | cut -d'|' -f1)
-        IP=$(echo "$line" | cut -d'|' -f2)
-        API_KEY=$(echo "$line" | cut -d'|' -f3)
-        
-        MCP_CONFIG+="  ${NAME}:\n"
-        MCP_CONFIG+="    url: \"http://${IP}:8642/mcp\"\n"
-        MCP_CONFIG+="    headers:\n"
-        MCP_CONFIG+="      Authorization: \"Bearer ${API_KEY}\"\n"
-        MCP_CONFIG+="    timeout: 30\n"
-        MCP_CONFIG+="    enabled: true\n"
-    done < <(python3 -c "
-import json
-with open('$WORKERS_FILE') as f:
-    data = json.load(f)
-for w in data['workers']:
-    if w.get('enabled', True):
-        print(f\"{w['name']}|{w['ip']}|{w['api_key']}\")
-" 2>/dev/null)
-    
-    MCP_CONFIG+="# === End Hermes VPS Cluster ==="
-    
-    echo -e "$MCP_CONFIG" >> "$CONFIG_FILE"
-    echo -e "${GREEN}✓ MCP config added${NC}"
-    
-    # Install skill
+    # Install skill (no MCP config needed)
     echo ""
     echo -e "${YELLOW}Installing cluster skill...${NC}"
     SKILL_DIR="$HOME/.hermes/skills/hermes-vps-cluster"
@@ -412,8 +367,7 @@ for w in data['workers']:
     echo ""
     echo -e "  ${YELLOW}Next steps:${NC}"
     echo "    1. Open Telegram → chat with Master bot"
-    echo "    2. Send: /reload-mcp"
-    echo "    3. Send: /check_workers"
+    echo "    2. Send: /check_workers"
     echo ""
 }
 
